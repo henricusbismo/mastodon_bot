@@ -1,20 +1,55 @@
-name: Mastodon Post
+name: Post to Mastodon
 
 on:
+  # Runs twice a day: 00:00 and 12:00 UTC.
   schedule:
     - cron: '0 0,12 * * *'
+  # Lets you run it by hand from the "Run workflow" button.
   workflow_dispatch:
+
+# Needed so the action is allowed to commit state.json back to the repo.
+permissions:
+  contents: write
 
 jobs:
   post:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      # 1. Download the repository files.
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # 2. Install Node.js.
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: npm install
-      - env:
+
+      # 3. Install dependencies (mastodon-api + rss-parser).
+      - name: Install dependencies
+        run: npm install
+
+      # 4. Run the bot.
+      #    FEED_URL is set here so you can change the feed in one place.
+      #    NOTE: TEMPORARY TEST FEED (BBC News). Change this back to your
+      #    real feed URL (e.g. https://YOUR_WEBSITE.com/feed) when ready.
+      - name: Run bot
+        run: node post.js
+        env:
           MASTODON_TOKEN: ${{ secrets.MASTODON_TOKEN }}
-          MASTODON_URL: https://mastodon.social
-        run: npm run post
+          FEED_URL: https://feeds.bbci.co.uk/news/rss.xml
+
+      # 5. Save state.json back to the repo so the next run remembers
+      #    what was posted. If nothing changed, this does nothing.
+      - name: Save state
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add state.json
+          if git diff --staged --quiet; then
+            echo "No state change to save."
+          else
+            git commit -m "Update last posted URL [skip ci]"
+            git push
+          fi
