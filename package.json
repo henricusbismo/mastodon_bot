@@ -1,10 +1,14 @@
 {
-  "name": "mastodon-bot",
+  "name": "mastodon-auto-poster",
   "version": "1.0.0",
+  "private": true,
+  "description": "Posts the latest RSS item to Mastodon, avoiding duplicates.",
+  "main": "post.js",
   "scripts": {
     "post": "node post.js"
   },
   "dependencies": {
-    "mastodon-api": "^1.3.0"
+    "mastodon-api": "^1.3.0",
+    "rss-parser": "^3.13.0"
   }
 }
